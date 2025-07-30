@@ -16,8 +16,35 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+
+# API version prefix
+API_VERSION = 'v1'
 
 urlpatterns = [
+    # Admin interface
     path('admin/', admin.site.urls),
+    
+    # Main webhook endpoints
     path('', include('hooks.urls')),
+    
+    # Authentication endpoints
+    path('auth/', include('authentication.urls')),
+    
+    # API endpoints with versioning
+    path(f'api/{API_VERSION}/', include([
+        path('', include('hooks.urls')),
+        path('auth/', include('authentication.urls')),
+        path('analytics/', include('analytics.urls')),
+    ])),
 ]
+
+# Development static files serving
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Custom error handlers
+handler404 = 'hooks.views.custom_404'
+handler500 = 'hooks.views.custom_500'
