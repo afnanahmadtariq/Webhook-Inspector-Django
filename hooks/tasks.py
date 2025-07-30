@@ -1,16 +1,22 @@
 import json
 import logging
+import csv
+import io
 from datetime import timedelta
 from django.utils import timezone
 from django.db import models
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 try:
     from celery import shared_task
+    CELERY_AVAILABLE = True
 except ImportError:
     # Fallback for when Celery is not available
     def shared_task(*args, **kwargs):
         def decorator(func):
             return func
         return decorator
+    CELERY_AVAILABLE = False
 
 from .models import WebhookEndpoint, WebhookRequest, WebhookSchema
 
@@ -318,3 +324,200 @@ def export_as_xml(webhook, requests):
     rough_string = tostring(root, 'utf-8')
     reparsed = minidom.parseString(rough_string)
     return reparsed.toprettyxml(indent="  ")
+
+
+@shared_task(bind=True, max_retries=3)
+def export_webhook_data_async(self, webhook_uuid, format_type='json', user_id=None):
+    """
+    Asynchronous export of webhook data in various formats.
+    
+    Args:
+        webhook_uuid (str): UUID of the webhook to export
+        format_type (str): Export format ('json', 'csv', 'xml')
+        user_id (int): Optional user ID for access control
+    
+    Returns:
+        dict: Export result with file path or error message
+    """
+    try:
+        from .models import WebhookEndpoint
+        
+        # Get webhook
+        webhook = WebhookEndpoint.objects.get(uuid=webhook_uuid)
+        
+        # Optional: Check user permissions
+        if user_id and hasattr(webhook, 'owner') and webhook.owner_id != user_id:
+            return {'error': 'Permission denied', 'status': 'failed'}
+        
+        # Get requests
+        requests = webhook.requests.all().order_by('-received_at')
+        
+        # Generate filename
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'webhook_export_{webhook_uuid}_{timestamp}.{format_type}'
+        
+        if format_type.lower() == 'json':
+            # JSON Export
+            data = {
+                'webhook': {
+                    'uuid': str(webhook.uuid),
+                    'name': webhook.name,
+                    'description': webhook.description,
+                    'created_at': webhook.created_at.isoformat(),
+                    'status': webhook.status,
+                    'total_requests': webhook.current_request_count,
+                },
+                'requests': [
+                    {
+                        'id': req.id,
+                        'method': req.method,
+                        'path': req.path,
+                        'query_string': req.query_string,
+                        'headers': req.headers,
+                        'body': req.body,
+                        'content_type': req.content_type,
+                        'content_length': req.content_length,
+                        'ip_address': req.ip_address,
+                        'user_agent': req.user_agent,
+                        'received_at': req.received_at.isoformat(),
+                        'processed': req.processed,
+                    }
+                    for req in requests
+                ],
+                'export_metadata': {
+                    'exported_at': timezone.now().isoformat(),
+                    'total_requests': requests.count(),
+                    'format': 'json'
+                }
+            }
+            
+            content = json.dumps(data, indent=2, ensure_ascii=False)
+            content_type = 'application/json'
+            
+        elif format_type.lower() == 'csv':
+            # CSV Export
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            # Header
+            headers = [
+                'ID', 'Method', 'Path', 'Query String', 'Content Type',
+                'Content Length', 'IP Address', 'User Agent', 'Received At',
+                'Body Preview', 'Processed'
+            ]
+            writer.writerow(headers)
+            
+            # Data rows
+            for req in requests:
+                writer.writerow([
+                    req.id,
+                    req.method,
+                    req.path,
+                    req.query_string,
+                    req.content_type,
+                    req.content_length,
+                    req.ip_address,
+                    req.user_agent[:100] if req.user_agent else '',  # Truncate
+                    req.received_at.isoformat(),
+                    req.body[:200] if req.body else '',  # Preview only
+                    'Yes' if req.processed else 'No'
+                ])
+            
+            content = output.getvalue()
+            content_type = 'text/csv'
+            
+        elif format_type.lower() == 'xml':
+            # XML Export
+            content = export_as_xml(webhook, requests)
+            content_type = 'application/xml'
+            
+        else:
+            return {'error': f'Unsupported format: {format_type}', 'status': 'failed'}
+        
+        # Save to storage (you can use different storage backends)
+        file_path = f'exports/{filename}'
+        file_content = ContentFile(content.encode('utf-8'))
+        
+        # Store file
+        stored_path = default_storage.save(file_path, file_content)
+        
+        return {
+            'status': 'completed',
+            'file_path': stored_path,
+            'filename': filename,
+            'content_type': content_type,
+            'size_bytes': len(content.encode('utf-8')),
+            'webhook_uuid': webhook_uuid,
+            'exported_at': timezone.now().isoformat(),
+            'total_requests': requests.count()
+        }
+        
+    except WebhookEndpoint.DoesNotExist:
+        return {'error': 'Webhook not found', 'status': 'failed'}
+    except Exception as e:
+        logger.error(f"Export task failed for {webhook_uuid}: {str(e)}")
+        return {'error': str(e), 'status': 'failed'}
+
+
+@shared_task(bind=True)
+def process_webhook_notification_async(self, webhook_id, request_id):
+    """
+    Asynchronous processing of webhook notifications.
+    This can include sending emails, Slack notifications, etc.
+    """
+    try:
+        from .models import WebhookEndpoint, WebhookRequest
+        
+        webhook = WebhookEndpoint.objects.get(id=webhook_id)
+        request = WebhookRequest.objects.get(id=request_id)
+        
+        # Example: Log the notification
+        logger.info(f"Processing notification for webhook {webhook.uuid}, request {request.id}")
+        
+        # Here you can add:
+        # - Email notifications
+        # - Slack/Discord webhooks
+        # - Push notifications
+        # - External API calls
+        
+        return {'status': 'completed', 'webhook_id': webhook_id, 'request_id': request_id}
+        
+    except Exception as e:
+        logger.error(f"Notification task failed: {str(e)}")
+        return {'error': str(e), 'status': 'failed'}
+
+
+@shared_task(bind=True)
+def generate_analytics_reports(self):
+    """
+    Generate periodic analytics reports for all active webhooks.
+    """
+    try:
+        from .models import WebhookEndpoint
+        
+        active_webhooks = WebhookEndpoint.objects.filter(status='active')
+        
+        for webhook in active_webhooks:
+            # Generate analytics data
+            requests_today = webhook.requests.filter(
+                received_at__date=timezone.now().date()
+            ).count()
+            
+            requests_this_week = webhook.requests.filter(
+                received_at__gte=timezone.now() - timedelta(days=7)
+            ).count()
+            
+            # You can store this data in a separate analytics table
+            # or send it to external analytics services
+            
+            logger.info(f"Analytics for {webhook.uuid}: {requests_today} today, {requests_this_week} this week")
+        
+        return {
+            'status': 'completed',
+            'processed_webhooks': active_webhooks.count(),
+            'generated_at': timezone.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Analytics generation failed: {str(e)}")
+        return {'error': str(e), 'status': 'failed'}

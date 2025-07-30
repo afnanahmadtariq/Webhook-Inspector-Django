@@ -319,31 +319,68 @@ class WebhookExportView(APIView):
         if format_type not in ['json', 'csv', 'xml']:
             return Response({'error': 'Invalid format. Supported: json, csv, xml'}, status=400)
         
-        # Skip async task for now to avoid Redis connection issues
-        # Use synchronous export instead
+        # Check if async processing is requested
+        async_processing = request.query_params.get('async', 'false').lower() == 'true'
+        
+        # Try to use Celery for async processing if available and requested
+        try:
+            from .tasks import export_webhook_data_async, CELERY_AVAILABLE
+            
+            if CELERY_AVAILABLE and async_processing:
+                # Start async task
+                user_id = request.user.id if hasattr(request.user, 'id') else None
+                task = export_webhook_data_async.delay(str(hook_uuid), format_type, user_id)
+                
+                return Response({
+                    'status': 'processing',
+                    'task_id': task.id,
+                    'webhook_uuid': str(hook_uuid),
+                    'format': format_type,
+                    'message': 'Export started. Use task_id to check status.',
+                    'check_status_url': f'/api/v1/webhooks/export-status/{task.id}/'
+                }, status=202)  # 202 Accepted
+                
+        except ImportError:
+            # Celery not available, fall back to synchronous processing
+            pass
+        
+        # Synchronous export (fallback or when async not requested)
         requests = webhook.requests.all().order_by('-received_at')
         
         if format_type == 'json':
-            # Simple JSON export
+            # JSON export
             data = []
             for req in requests:
                 data.append({
                     'id': req.id,
                     'method': req.method,
+                    'path': req.path,
+                    'query_string': req.query_string,
                     'headers': req.headers,
                     'body': req.body,
-                    'received_at': req.received_at.isoformat(),
+                    'content_type': req.content_type,
+                    'content_length': req.content_length,
                     'ip_address': req.ip_address,
+                    'user_agent': req.user_agent,
+                    'received_at': req.received_at.isoformat(),
+                    'processed': req.processed,
                 })
             
             response_data = {
                 'webhook': {
                     'uuid': str(webhook.uuid),
                     'name': webhook.name,
+                    'description': webhook.description,
                     'created_at': webhook.created_at.isoformat(),
+                    'status': webhook.status,
                 },
                 'requests': data,
-                'total_requests': len(data)
+                'export_metadata': {
+                    'exported_at': timezone.now().isoformat(),
+                    'total_requests': len(data),
+                    'format': 'json',
+                    'processing_mode': 'synchronous'
+                }
             }
             return Response(response_data)
             
@@ -373,6 +410,59 @@ class WebhookExportView(APIView):
             
         else:
             return Response({'error': 'Unsupported format'}, status=400)
+
+
+class WebhookExportStatusView(APIView):
+    """Check the status of an async export task"""
+    permission_classes = [AllowAny]
+    
+    def get(self, request, task_id):
+        try:
+            from celery.result import AsyncResult
+            from .tasks import CELERY_AVAILABLE
+            
+            if not CELERY_AVAILABLE:
+                return Response({
+                    'error': 'Celery not available'
+                }, status=503)
+            
+            # Get task result
+            task_result = AsyncResult(task_id)
+            
+            response_data = {
+                'task_id': task_id,
+                'status': task_result.status,
+                'ready': task_result.ready(),
+            }
+            
+            if task_result.ready():
+                if task_result.successful():
+                    result = task_result.result
+                    response_data.update({
+                        'completed': True,
+                        'result': result
+                    })
+                else:
+                    response_data.update({
+                        'completed': True,
+                        'error': str(task_result.result)
+                    })
+            else:
+                response_data.update({
+                    'completed': False,
+                    'message': 'Task is still processing'
+                })
+            
+            return Response(response_data)
+            
+        except ImportError:
+            return Response({
+                'error': 'Celery not available'
+            }, status=503)
+        except Exception as e:
+            return Response({
+                'error': f'Failed to check task status: {str(e)}'
+            }, status=500)
 
 
 class WebhookSchemaListCreateView(generics.ListCreateAPIView):

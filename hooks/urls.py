@@ -18,6 +18,7 @@ urlpatterns = [
     path('webhooks/requests/', views.WebhookRequestListView.as_view(), name='webhook_requests'),
     path('webhooks/requests/<int:request_id>/', views.WebhookRequestDetailView.as_view(), name='webhook_request_detail'),
     path('webhooks/requests/export/', views.WebhookExportView.as_view(), name='webhook_export'),
+    path('webhooks/export-status/<str:task_id>/', views.WebhookExportStatusView.as_view(), name='webhook_export_status'),
     
     # Analytics endpoints
     path('webhooks/analytics/', views.WebhookAnalyticsView.as_view(), name='webhook_analytics_all'),
