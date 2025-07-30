@@ -1,0 +1,74 @@
+# Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Django stuff:
+*.log
+*.pot
+*.pyc
+*.mo
+
+# Local SQLite database
+db.sqlite3
+
+# Media files (user-uploaded files)
+media/
+
+# Django static files collected by `collectstatic`
+staticfiles/
+
+# VSCode settings (if you use VSCode)
+.vscode/
+
+# PyCharm project files
+.idea/
+
+# macOS files
+.DS_Store
+
+# env files for environment variables
+.env
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Test output
+.pytest_cache/
+nosetests.xml
+test-results/
+
+# Migrations (optional: sometimes you want to commit these)
+*/migrations/*.py
+!*/migrations/__init__.py
+
+# Byte-compiled / optimized / DLL files
+*.pyc
+*.pyo
+*.pyd
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# mypy
+.mypy_cache/
+
+# Pyre type checker
+.pyre/
+
+# Profiling data
+.prof
+
+# C extensions
+*.so
+
