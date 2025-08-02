@@ -84,38 +84,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'webhook_inspector.wsgi.application'
 ASGI_APPLICATION = 'webhook_inspector.asgi.application'
 
-# Database Configuration
-DATABASE_ENGINE = config('DATABASE_ENGINE', default='postgresql')
-
-if DATABASE_ENGINE == 'postgresql':
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('POSTGRES_DB', default='webhook_inspector'),
-            'USER': config('POSTGRES_USER', default='postgres'),
-            'PASSWORD': config('POSTGRES_PASSWORD', default='password'),
-            'HOST': config('POSTGRES_HOST', default='localhost'),
-            'PORT': config('POSTGRES_PORT', default='5432'),
+# Database Configuration - MongoDB only
+DATABASES = {
+    'default': {
+        'ENGINE': 'djongo',
+        'NAME': config('MONGO_DB', default='webhook_inspector'),
+        'CLIENT': {
+            'host': config('MONGO_URI', default='mongodb://localhost:27017/webhook_inspector'),
         }
     }
-elif DATABASE_ENGINE == 'mongodb':
-    DATABASES = {
-        'default': {
-            'ENGINE': 'djongo',
-            'NAME': config('MONGO_DB', default='webhook_inspector'),
-            'CLIENT': {
-                'host': config('MONGO_URI', default='mongodb://localhost:27017'),
-            }
-        }
-    }
-else:
-    # Fallback to SQLite for development
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 
 # Password validation

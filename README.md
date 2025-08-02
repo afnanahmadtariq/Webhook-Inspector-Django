@@ -40,7 +40,7 @@ A micro web application for receiving, logging, and inspecting incoming webhooks
 - **Django UUID routing** for unique webhook endpoints
 - **Django Channels** or **HTMX** for real-time UI updates
 - **Celery + Redis** for async task processing
-- **SQLite** or **PostgreSQL** for data storage
+- **MongoDB** for data storage (via Djongo)
 - **Logging** with model-level TTL (auto-delete expired logs)
 
 ## Why It's Technical & Valuable
