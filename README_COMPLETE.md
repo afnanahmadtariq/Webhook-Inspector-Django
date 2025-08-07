@@ -1,9 +1,6 @@
 # Django Webhook Inspector
-2. **Prerequisites**
-   - Python 3.12+
-   - MongoDB (Atlas or local instance)
-   - Redis
-   - Node.js (for frontend)omprehensive webhook inspection and testing tool built with Django, designed for monitoring, analyzing, and debugging webhook requests in real-time.
+
+A comprehensive webhook inspection and testing tool built with Django, designed for monitoring, analyzing, and debugging webhook requests in real-time.
 
 ## 🚀 Quick Start
 
@@ -92,7 +89,7 @@
 ### ✅ Advanced Features
 - **Schema Validation**: Validate incoming webhooks against JSON schemas
 - **Async Processing**: Background task processing with Celery
-- **Multi-database Support**: MongoDB-powered with Djongo ORM integration
+- **Multi-database Support**: PostgreSQL and MongoDB compatibility
 - **WebSocket Support**: Real-time updates using Django Channels
 
 ### ✅ Deployment Ready
@@ -154,8 +151,9 @@ Key configuration options in `.env`:
 
 ```bash
 # Database
-MONGO_URI=mongodb://localhost:27017/webhook_inspector
-MONGO_DB=webhook_inspector
+DATABASE_ENGINE=postgresql  # or mongodb
+POSTGRES_HOST=localhost
+POSTGRES_DB=webhook_inspector
 
 # Redis & Celery
 REDIS_HOST=localhost
@@ -201,9 +199,8 @@ Control features via environment variables:
    # Create App Service plan
    az appservice plan create --name webhook-inspector-plan --resource-group webhook-inspector-rg --sku B1 --is-linux
    
-   # Create MongoDB Atlas cluster or use Azure Cosmos DB
-   # For Cosmos DB:
-   az cosmosdb create --name webhook-inspector-cosmos --resource-group webhook-inspector-rg --kind MongoDB
+   # Create PostgreSQL server
+   az postgres server create --name webhook-inspector-db --resource-group webhook-inspector-rg --admin-user webhook_admin --admin-password YourSecurePassword123
    
    # Create Redis cache
    az redis create --name webhook-inspector-cache --resource-group webhook-inspector-rg --location eastus --sku Basic --vm-size c0
@@ -227,7 +224,7 @@ Control features via environment variables:
 ### Production Checklist
 
 - [ ] Update `SECRET_KEY` and `JWT_SECRET_KEY`
-- [ ] Configure MongoDB Atlas or Azure Cosmos DB
+- [ ] Configure PostgreSQL database
 - [ ] Set up Redis cache with SSL
 - [ ] Configure email backend (SendGrid/Azure Communication Services)
 - [ ] Set up Application Insights (optional)

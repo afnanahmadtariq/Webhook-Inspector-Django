@@ -302,10 +302,10 @@ class AdvancedWebhookRequestFilter(WebhookRequestFilter):
     # Custom date range filter
     date_range = DateRangeFilter(field_name='received_at')
     
-    # JSON path search (for MongoDB)
+    # JSON path search (for PostgreSQL)
     json_path = django_filters.CharFilter(
         method='filter_json_path',
-        widget=forms.TextInput(attrs={'placeholder': 'JSON field search (e.g., user.id)'})
+        widget=forms.TextInput(attrs={'placeholder': 'JSON path query (e.g., $.user.id)'})
     )
     
     # Multiple IP filter
@@ -322,16 +322,16 @@ class AdvancedWebhookRequestFilter(WebhookRequestFilter):
     )
     
     def filter_json_path(self, queryset, name, value):
-        """Filter by JSON field in request body (MongoDB compatible)"""
+        """Filter by JSON path in request body (PostgreSQL only)"""
         if value:
             try:
-                # For MongoDB through Djongo, use simple field lookups
-                # Convert dot notation to Django field lookup
-                json_field = value.replace('.', '__')
-                filter_dict = {f'headers__{json_field}__isnull': False}
-                return queryset.filter(**filter_dict)
+                # This works with PostgreSQL JSON fields
+                return queryset.extra(
+                    where=["body::json #>> %s IS NOT NULL"],
+                    params=[f'{{{value}}}']
+                )
             except Exception:
-                # Fallback to simple text search
+                # Fallback for other databases
                 return queryset.filter(body__icontains=value)
         return queryset
     
