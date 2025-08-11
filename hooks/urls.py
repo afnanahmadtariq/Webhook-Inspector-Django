@@ -4,10 +4,9 @@ from . import views
 # Traditional Django URLs
 urlpatterns = [
     # Traditional views
-    # path('', views.home, name='home'),
     path('create/', views.create_webhook, name='create_webhook'),
     # path('<uuid:hook_uuid>/', views.receive_webhook, name='receive_webhook'),
-    # path('<uuid:hook_uuid>/inspect/', views.inspect_webhook, name='inspect_webhook'),
+    path('<uuid:hook_uuid>/inspect/', views.inspect_webhook, name='inspect_webhook'),
     
     # # DRF API endpoints for webhook management
     path('endpoints/', views.WebhookEndpointListCreateView.as_view(), name='webhook_endpoints'),

@@ -57,8 +57,8 @@ def create_webhook(request):
             )
             return JsonResponse({
                 'uuid': str(webhook.uuid),
-                'url': f'/hooks/{webhook.uuid}/',
-                'inspect_url': f'/hooks/{webhook.uuid}/inspect/',
+                'url': f'/webhooks/{webhook.uuid}/',
+                'inspect_url': f'/webhooks/{webhook.uuid}/inspect/',
                 'created_at': webhook.created_at.isoformat(),
                 'expires_at': webhook.expires_at.isoformat() if webhook.expires_at else None
             })
@@ -100,6 +100,8 @@ def receive_webhook(request, hook_uuid):
         return JsonResponse({'error': 'Internal server error'}, status=500)
 
 
+@csrf_exempt
+@require_http_methods(["GET"])
 def inspect_webhook(request, hook_uuid):
     """Inspect webhook requests"""
     webhook = get_object_or_404(WebhookEndpoint, uuid=hook_uuid)
