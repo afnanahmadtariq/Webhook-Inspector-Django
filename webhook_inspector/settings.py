@@ -15,6 +15,7 @@ import os
 from decouple import config
 from dotenv import load_dotenv
 from urllib.parse import urlparse, parse_qsl
+from urllib.parse import quote_plus
 
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -185,18 +186,31 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # Channels Configuration
+REDIS_HOST = config('REDIS_HOST')
+REDIS_PORT = config('REDIS_PORT', cast=int)
+REDIS_PASSWORD = config('REDIS_PASSWORD')
+
+# Channels Configuration
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            'hosts': [(config('REDIS_HOST', default='localhost'), config('REDIS_PORT', default=6379, cast=int))],
+            'hosts': [
+                (
+                    f'rediss://:{quote_plus(REDIS_PASSWORD)}@{REDIS_HOST}:{REDIS_PORT}/0',
+                    {'ssl_cert_reqs': 'CERT_REQUIRED'}
+                )
+            ],
         },
     },
 }
 
 # Celery Configuration
-CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='redis://localhost:6379/0')
+
+# Celery Configuration
+CELERY_BROKER_URL = f'rediss://:{quote_plus(REDIS_PASSWORD)}@{REDIS_HOST}:{REDIS_PORT}/0?ssl_cert_reqs=CERT_REQUIRED'
+CELERY_RESULT_BACKEND = f'rediss://:{quote_plus(REDIS_PASSWORD)}@{REDIS_HOST}:{REDIS_PORT}/0?ssl_cert_reqs=CERT_REQUIRED'
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -251,10 +265,6 @@ LOGGING = {
         },
     },
 }
-
-# Azure Configuration
-AZURE_STORAGE_ACCOUNT_NAME = config('AZURE_STORAGE_ACCOUNT_NAME', default='')
-AZURE_STORAGE_ACCOUNT_KEY = config('AZURE_STORAGE_ACCOUNT_KEY', default='')
 
 # Security Settings for Production
 if not DEBUG:
