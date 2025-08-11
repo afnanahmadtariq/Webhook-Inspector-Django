@@ -5,7 +5,7 @@ from . import views
 urlpatterns = [
     # Traditional views
     path('create/', views.create_webhook, name='create_webhook'),
-    # path('<uuid:hook_uuid>/', views.receive_webhook, name='receive_webhook'),
+    path('<uuid:hook_uuid>/', views.receive_webhook, name='receive_webhook'),
     path('<uuid:hook_uuid>/inspect/', views.inspect_webhook, name='inspect_webhook'),
     
     # # DRF API endpoints for webhook management
