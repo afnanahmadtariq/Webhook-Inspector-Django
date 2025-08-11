@@ -92,9 +92,10 @@ class APIUsageSerializer(serializers.ModelSerializer):
 class UserStatsSerializer(serializers.Serializer):
     """Serializer for user statistics"""
     
-    total_webhooks = serializers.IntegerField()
-    active_webhooks = serializers.IntegerField()
-    total_requests_received = serializers.IntegerField()
+    totalEndpoints = serializers.IntegerField()
+    activeEndpoints = serializers.IntegerField()
+    totalRequests = serializers.IntegerField()
+    requestsToday = serializers.IntegerField()
     requests_this_month = serializers.IntegerField()
     api_calls_today = serializers.IntegerField()
     storage_used_mb = serializers.FloatField()

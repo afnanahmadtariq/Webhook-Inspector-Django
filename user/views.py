@@ -110,6 +110,11 @@ class UserStatsView(APIView):
         ).count()
         
         # Storage calculation (approximate)
+        requests_today = WebhookRequest.objects.filter(
+            webhook__owner=user,
+            received_at__gte=today_start
+        ).count()
+        
         total_requests = WebhookRequest.objects.filter(webhook__owner=user)
         storage_bytes = total_requests.aggregate(
             total=Sum('content_length')
@@ -117,9 +122,10 @@ class UserStatsView(APIView):
         storage_mb = storage_bytes / (1024 * 1024)
         
         stats = {
-            'total_webhooks': total_webhooks,
-            'active_webhooks': active_webhooks,
-            'total_requests_received': profile.total_requests_received,
+            'totalEndpoints': total_webhooks,
+            'activeEndpoints': active_webhooks,
+            'totalRequests': profile.total_requests_received,
+            'requestsToday': requests_today,
             'requests_this_month': requests_this_month,
             'api_calls_today': api_calls_today,
             'storage_used_mb': round(storage_mb, 2),
