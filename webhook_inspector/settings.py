@@ -88,7 +88,11 @@ TEMPLATES = [
 WSGI_APPLICATION = 'webhook_inspector.wsgi.application'
 ASGI_APPLICATION = 'webhook_inspector.asgi.application'
 
-tmpPostgres = urlparse(os.getenv("DATABASE_URL"))
+raw_db_url = os.getenv("DATABASE_URL")
+if isinstance(raw_db_url, bytes):
+    raw_db_url = raw_db_url.decode()
+
+tmpPostgres = urlparse(raw_db_url)
 
 DATABASES = {
     'default': {
