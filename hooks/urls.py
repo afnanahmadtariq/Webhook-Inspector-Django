@@ -10,27 +10,27 @@ urlpatterns = [
     
     # DRF API endpoints for webhook management
     path('endpoints/', views.WebhookEndpointListCreateView.as_view(), name='webhook_endpoints'),
-    # path('endpoints/<uuid:uuid>/', views.WebhookEndpointDetailView.as_view(), name='webhook_endpoint_detail'),
-    # path('capture/<uuid:hook_uuid>/', views.receive_webhook, name='webhook_capture'),
+    path('endpoints/<uuid:uuid>/', views.WebhookEndpointDetailView.as_view(), name='webhook_endpoint_detail'),
+    path('capture/<uuid:hook_uuid>/', views.receive_webhook, name='webhook_capture'),
     
     # # Request management endpoints
     path('requests/', views.WebhookRequestListView.as_view(), name='webhook_requests'),
-    # path('requests/<int:request_id>/', views.WebhookRequestDetailView.as_view(), name='webhook_request_detail'),
-    # path('requests/export/', views.WebhookExportView.as_view(), name='webhook_export'),
-    # path('export-status/<str:task_id>/', views.WebhookExportStatusView.as_view(), name='webhook_export_status'),
+    path('requests/<int:request_id>/', views.WebhookRequestDetailView.as_view(), name='webhook_request_detail'),
+    path('requests/export/', views.WebhookExportView.as_view(), name='webhook_export'),
+    path('export-status/<str:task_id>/', views.WebhookExportStatusView.as_view(), name='webhook_export_status'),
     
     # # Analytics endpoints
-    # path('analytics/', views.WebhookAnalyticsView.as_view(), name='webhook_analytics_all'),
-    # path('<uuid:hook_uuid>/analytics/', views.WebhookAnalyticsView.as_view(), name='webhook_analytics'),
-    # path('<uuid:hook_uuid>/stats/', views.WebhookStatsView.as_view(), name='webhook_stats'),
+    path('analytics/', views.WebhookAnalyticsView.as_view(), name='webhook_analytics_all'),
+    path('<uuid:hook_uuid>/analytics/', views.WebhookAnalyticsView.as_view(), name='webhook_analytics'),
+    path('<uuid:hook_uuid>/stats/', views.WebhookStatsView.as_view(), name='webhook_stats'),
     
     # # Health check
-    # path('health/', views.webhook_health_check, name='webhook_health'),
+    path('health/', views.webhook_health_check, name='webhook_health'),
     
     # # Schema management
-    # path('schemas/', views.WebhookSchemaListCreateView.as_view(), name='webhook_schemas'),
-    # path('schemas/<int:schema_id>/', views.WebhookSchemaDetailView.as_view(), name='webhook_schema_detail'),
-    # path('schemas/<int:schema_id>/validate/', views.validate_webhook_schema, name='validate_schema'),
+    path('schemas/', views.WebhookSchemaListCreateView.as_view(), name='webhook_schemas'),
+    path('schemas/<int:schema_id>/', views.WebhookSchemaDetailView.as_view(), name='webhook_schema_detail'),
+    path('schemas/<int:schema_id>/validate/', views.validate_webhook_schema, name='validate_schema'),
     
     # # Legacy API endpoints (for backward compatibility)
     # path('api/webhooks/', views.WebhookEndpointListCreateView.as_view(), name='api_webhook_list'),
