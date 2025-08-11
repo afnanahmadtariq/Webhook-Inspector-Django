@@ -34,7 +34,7 @@ app.conf.beat_schedule = {
     },
 }
 
-app.conf.timezone = 'UTC'
+app.conf.timezone = 'Asia/Karachi'
 
 
 @app.task(bind=True)
