@@ -8,7 +8,7 @@ urlpatterns = [
     path('<uuid:hook_uuid>/', views.receive_webhook, name='receive_webhook'),
     path('<uuid:hook_uuid>/inspect/', views.inspect_webhook, name='inspect_webhook'),
     
-    # # DRF API endpoints for webhook management
+    # DRF API endpoints for webhook management
     path('endpoints/', views.WebhookEndpointListCreateView.as_view(), name='webhook_endpoints'),
     # path('endpoints/<uuid:uuid>/', views.WebhookEndpointDetailView.as_view(), name='webhook_endpoint_detail'),
     # path('capture/<uuid:hook_uuid>/', views.receive_webhook, name='webhook_capture'),

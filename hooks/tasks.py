@@ -19,6 +19,7 @@ except ImportError:
     CELERY_AVAILABLE = False
 
 from .models import WebhookEndpoint, WebhookRequest, WebhookSchema
+from webhook_inspector.utils import send_webhook_alert
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,16 @@ def process_webhook_request_async(self, request_id):
                 logger.warning(
                     f"Schema validation failed for request {request_id}: {error_message}"
                 )
+                # Send email alert for schema validation error
+                subject = f"Webhook Schema Validation Failed: {webhook_request.webhook.name}"
+                message = (
+                    f"Webhook request ID: {request_id}\n"
+                    f"Webhook: {webhook_request.webhook.name}\n"
+                    f"Error: {error_message}\n"
+                    f"Timestamp: {webhook_request.received_at}\n"
+                    f"Payload: {webhook_request.body}\n"
+                )
+                send_webhook_alert(subject, message)
         
         # Additional processing can be added here
         # - Send notifications
@@ -59,8 +70,17 @@ def process_webhook_request_async(self, request_id):
         
     except WebhookRequest.DoesNotExist:
         logger.error(f"Webhook request {request_id} not found")
+        subject = "Webhook Request Not Found"
+        message = f"Webhook request ID: {request_id} was not found."
+        send_webhook_alert(subject, message)
     except Exception as exc:
         logger.error(f"Error processing webhook request {request_id}: {exc}")
+        subject = "Webhook Processing Error"
+        message = (
+            f"Error processing webhook request ID: {request_id}\n"
+            f"Exception: {exc}\n"
+        )
+        send_webhook_alert(subject, message)
         # Retry the task
         raise self.retry(exc=exc, countdown=60)
 
