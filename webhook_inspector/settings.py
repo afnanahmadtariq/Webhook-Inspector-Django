@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-hk7op%php3)b2we4gr$1l4sg3+vuf!o&pzvc%cfyjyg9xi8c1h')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
@@ -48,7 +48,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'hooks',
-    'authentication',
+    'user',
     'analytics',
 ]
 
@@ -161,6 +161,7 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+    'EXCEPTION_HANDLER': 'webhook_inspector.urls.custom_exception_handler',
 }
 
 # JWT Configuration
@@ -181,7 +182,7 @@ CORS_ALLOWED_ORIGINS = config(
 ).split(',')
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only in development
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # Channels Configuration
 CHANNEL_LAYERS = {

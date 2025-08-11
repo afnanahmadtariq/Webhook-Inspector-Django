@@ -42,12 +42,6 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-# Traditional Django Views (for backward compatibility)
-def home(request):
-    """Home page view"""
-    return render(request, 'hooks/home.html')
-
-
 @csrf_exempt
 def create_webhook(request):
     """Create a new webhook endpoint"""
@@ -71,8 +65,7 @@ def create_webhook(request):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
     else:
-        hook = WebhookEndpoint.objects.create()
-        return render(request, 'hooks/webhook_created.html', {'hook': hook})
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
 @csrf_exempt
@@ -108,20 +101,47 @@ def receive_webhook(request, hook_uuid):
 
 
 def inspect_webhook(request, hook_uuid):
-    """Inspect webhook requests (traditional view)"""
+    """Inspect webhook requests"""
     webhook = get_object_or_404(WebhookEndpoint, uuid=hook_uuid)
     requests_list = WebhookRequest.objects.filter(webhook=webhook).order_by('-received_at')
-    
+
     # Pagination
     paginator = Paginator(requests_list, 20)
     page_number = request.GET.get('page')
     requests = paginator.get_page(page_number)
-    
-    return render(request, 'hooks/inspect.html', {
-        'webhook': webhook,
-        'requests': requests,
-        'total_requests': requests_list.count()
-    })
+
+    # Serialize requests
+    requests_data = []
+    for req in requests:
+        requests_data.append({
+            'id': req.id,
+            'method': req.method,
+            'body': req.body,
+            'received_at': req.received_at.isoformat(),
+            'ip_address': req.ip_address,
+            'user_agent': req.user_agent,
+            'content_type': req.content_type,
+            'content_length': req.content_length,
+            'processed': req.processed,
+        })
+
+    response_data = {
+        'webhook': {
+            'uuid': str(webhook.uuid),
+            'name': webhook.name,
+            'description': webhook.description,
+            'created_at': webhook.created_at.isoformat(),
+            'status': webhook.status,
+        },
+        'requests': requests_data,
+        'total_requests': requests_list.count(),
+        'page': requests.number,
+        'num_pages': paginator.num_pages,
+        'has_next': requests.has_next(),
+        'has_previous': requests.has_previous(),
+    }
+
+    return JsonResponse(response_data)
 
 
 # REST API Views

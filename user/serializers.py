@@ -8,26 +8,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     """Serializer for user registration"""
     
     password = serializers.CharField(write_only=True, min_length=8)
-    password_confirm = serializers.CharField(write_only=True)
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'password_confirm', 'first_name', 'last_name']
-    
-    def validate(self, data):
-        if data['password'] != data['password_confirm']:
-            raise serializers.ValidationError("Passwords do not match")
-        return data
+        fields = ['username', 'email', 'password']
     
     def create(self, validated_data):
-        validated_data.pop('password_confirm')
         password = validated_data.pop('password')
         
         user = User.objects.create_user(**validated_data)
         user.set_password(password)
         user.save()
         
-        # Create user profile
         UserProfile.objects.create(user=user)
         
         return user
@@ -38,14 +30,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.CharField(source='user.email', read_only=True)
-    first_name = serializers.CharField(source='user.first_name', read_only=True)
-    last_name = serializers.CharField(source='user.last_name', read_only=True)
     can_create_webhook = serializers.ReadOnlyField()
     
     class Meta:
         model = UserProfile
         fields = [
-            'username', 'email', 'first_name', 'last_name',
+            'username', 'email',
             'max_webhooks', 'max_requests_per_webhook', 'email_notifications',
             'webhook_retention_days', 'total_webhooks_created', 'total_requests_received',
             'api_key_created_at', 'can_create_webhook', 'created_at', 'updated_at'

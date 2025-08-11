@@ -18,32 +18,36 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-
-# API version prefix
-API_VERSION = 'v1'
+from django.http import JsonResponse
+from rest_framework.views import exception_handler
+from rest_framework.response import Response
+from rest_framework import status
 
 urlpatterns = [
     # Admin interface
     path('admin/', admin.site.urls),
     
     # Main webhook endpoints
-    path('', include('hooks.urls')),
+    path('webhooks/', include('hooks.urls')),
     
-    # Authentication endpoints
-    path('auth/', include('authentication.urls')),
-    
-    # API endpoints with versioning
-    path(f'api/{API_VERSION}/', include([
-        path('', include('hooks.urls')),
-        path('auth/', include('authentication.urls')),
-        path('analytics/', include('analytics.urls')),
-    ])),
+    # user endpoints
+    path('user/', include('user.urls')),
+
 ]
 
 # Development static files serving
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+def custom_exception_handler(exc, context):
+    response = exception_handler(exc, context)
+    if response is not None:
+        response.data['status_code'] = response.status_code
+    else:
+        # For non-DRF errors, return JSON
+        return Response({'detail': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return response
 
 # Custom error handlers
 handler404 = 'hooks.views.custom_404'
